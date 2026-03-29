@@ -4,59 +4,104 @@ import AddEditPlaceOverlay from '../../components/ui/placeoverlay';
 import DayTab from '../../components/ui/DayTab';
 import ChatBubble from '../../components/ui/ChatBubble'
 
-//example of what the data structure will look like.
-const itineraryData = {
-  tripName: "Exploring Munich",
-  days: [
-    {
-      id: 1,
-      name: "Day 1",
-      places: [
-        {
-          id: "bmw-museum",
-          name: "BMW Museum",
-          timeStart: "10:00",
-          timeEnd: "15:00",
-          description: "Browse the classic car collection...",
-          isFavorite: false,
-          activities: [
-            { id: "act1", name: "Browse the classic car collection" },
-            { id: "act2", name: "Watch the restoration workshop demo" },
-            { id: "act3", name: "Lunch at the museum cafe" }
-          ]
-        },
-        {
-          id: "marienplatz",
-          name: "Marienplatz",
-          timeStart: "15:30",
-          timeEnd: "17:30",
-          isFavorite: true,
-          activities: []
-        }
-      ]
-    },
-    { id: 2, name: "Day 2", places: [] },
-    { id: 3, name: "Day 3", places: [] }
-  ],
-  chatHistory: [
-    { role: "user", message: "I'm planning to go to..." },
-    { role: "assistant", message: "1. Explore Marienkirche..." }
-  ]
-};
-
-
-//TODO: 
-// Build all backend functionality to be based on the above json structure
-// When AI is about to add something to the UI it should be based on the json structure aboveExploring Munich
-
 export default function ItineraryBuilder() {
+  const [itinerary, setItinerary] = useState({
+    tripName: "Exploring Munich",
+    days: [
+      {
+        id: 1,
+        name: "Day 1",
+        places: [
+          {
+            id: "bmw-museum",
+            name: "BMW Museum",
+            timeStart: "10:00",
+            timeEnd: "15:00",
+            description: "Browse the classic car collection...",
+            isFavorite: false,
+            activities: [
+              { id: "act1", name: "Browse the classic car collection" },
+              { id: "act2", name: "Watch the restoration workshop demo" },
+              { id: "act3", name: "Lunch at the museum cafe" }
+            ]
+          },
+          {
+            id: "marienplatz",
+            name: "Marienplatz",
+            timeStart: "15:30",
+            timeEnd: "17:30",
+            description: "",
+            isFavorite: true,
+            activities: []
+          }
+        ]
+      },
+      { id: 2, name: "Day 2", places: [] },
+      { id: 3, name: "Day 3", places: [] }
+    ],
+    chatHistory: [
+      { role: "user", message: "I'm planning to go to the Marienplatz after the BMW Museum. Can you help give some suggestions for activities to do in the Marienplatz?" },
+      { role: "assistant", message: "1. Explore Marienkirche Cathedral (1 hour)\n\n2. Watch the Glockenspiel performance (30 mins)\n\n3. Lunch at a traditional Bavarian café (1 hour)\n\n4. Photo stop at Mariensäule statue (15 mins)" }
+    ]
+  });
+
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   const [isPlaceOverlayOpen, setIsPlaceOverlayOpen] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [chatInput, setChatInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const days = itineraryData.days;
-  const chatHistory = itineraryData.chatHistory;
-  
+  const currentDayObj = itinerary.days.find(d => d.id === currentDay);
+  const currentPlaces = currentDayObj?.places ?? [];
+  const selectedPlace = currentPlaces.find(p => p.id === selectedPlaceId);
+
+  const handleChatSubmit = async () => {
+    const message = chatInput.trim();
+    if (!message || isLoading) return;
+
+    setChatInput('');
+    setIsLoading(true);
+
+    setItinerary(prev => ({
+      ...prev,
+      chatHistory: [...prev.chatHistory, { role: "user", message }]
+    }));
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, itinerary }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setItinerary(data.updatedItinerary);
+    } catch (err) {
+      console.error('Chat error:', err);
+      setItinerary(prev => ({
+        ...prev,
+        chatHistory: [
+          ...prev.chatHistory,
+          { role: "assistant", message: "Sorry, I encountered an error. Please try again." }
+        ]
+      }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleChatSubmit();
+    }
+  };
+
   return (
     <>
       <div className="bg-[#FDFFFE] min-h-screen flex">
@@ -82,126 +127,80 @@ export default function ItineraryBuilder() {
 
           {/* Title */}
           <h1 className="text-[#08120C] font-manrope text-[40px] font-semibold mb-8">
-            {itineraryData.tripName}
+            {itinerary.tripName}
           </h1>
 
           {/* Activity Cards */}
           <div className="flex flex-col gap-4 mb-8">
-            {/* BMW Museum Card */}
-            <div className="flex py-6 px-8 flex-col gap-2.5 rounded-3xl border border-[#419061] bg-[#DCEFE4]">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-[#000] font-manrope text-2xl font-medium">
-                  BMW Museum
-                </p>
-                <div className="flex gap-2">
-                  <button className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]">
-                    <p className="text-[#245136] font-manrope text-base font-medium">
-                      View Posts
-                    </p>
-                  </button>
-                  <button className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]">
-                    <p className="text-[#245136] font-manrope text-base font-medium">
-                      Edit
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-[#245136] font-manrope text-xl font-medium">
-                10:00 - 15:00
-              </p>
-
-              <p className="text-[#419061] font-manrope text-base font-medium">
-                Browse the classic car collection Watch the restoration workshop demo
-              </p>
-
-              <div className="flex justify-between items-center">
-                <button 
-                  onClick={() => setIsOverlayOpen(true)}
-                  className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]"
-                >
-                  <p className="text-[#245136] font-manrope text-base font-medium">
-                    All Activities (3 total)
+            {currentPlaces.map(place => (
+              <div key={place.id} className="flex py-6 px-8 flex-col gap-2.5 rounded-3xl border border-[#419061] bg-[#DCEFE4]">
+                <div className="flex justify-between items-start mb-2">
+                  <p className="text-[#000] font-manrope text-2xl font-medium">
+                    {place.name}
                   </p>
-                </button>
-
-                <div className="flex justify-center items-center rounded-full border border-[#6FBE8F] bg-[#FDFFFE] w-12 h-12">
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 32 32"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M27.7867 6.14666C27.1057 5.46533 26.2971 4.92485 25.4071 4.5561C24.5172 4.18735 23.5633 3.99756 22.6 3.99756C21.6367 3.99756 20.6828 4.18735 19.7929 4.5561C18.9029 4.92485 18.0943 5.46533 17.4133 6.14666L16 7.55999L14.5867 6.14666C13.2111 4.77107 11.3454 3.99827 9.4 3.99827C7.45462 3.99827 5.58892 4.77107 4.21333 6.14666C2.83774 7.52225 2.06494 9.38795 2.06494 11.3333C2.06494 13.2787 2.83774 15.1444 4.21333 16.52L16 28.3067L27.7867 16.52C28.468 15.839 29.0085 15.0304 29.3772 14.1405C29.746 13.2505 29.9358 12.2966 29.9358 11.3333C29.9358 10.37 29.746 9.41613 29.3772 8.52619C29.0085 7.63624 28.468 6.82767 27.7867 6.14666Z"
-                      stroke="#6FBE8F"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <div className="flex gap-2">
+                    <button className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]">
+                      <p className="text-[#245136] font-manrope text-base font-medium">
+                        View Posts
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => { setSelectedPlaceId(place.id); setIsPlaceOverlayOpen(true); }}
+                      className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]"
+                    >
+                      <p className="text-[#245136] font-manrope text-base font-medium">
+                        Edit
+                      </p>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Marienplatz Card */}
-            <div className="flex py-6 px-8 flex-col gap-2.5 rounded-3xl border border-[#419061] bg-[#DCEFE4]">
-              <div className="flex justify-between items-start mb-2">
-                <p className="text-[#000] font-manrope text-2xl font-medium">
-                  Marienplatz
+                <p className="text-[#245136] font-manrope text-xl font-medium">
+                  {place.timeStart} - {place.timeEnd}
                 </p>
-                <div className="flex gap-2">
-                  <button className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]">
-                    <p className="text-[#245136] font-manrope text-base font-medium">
-                      View Posts
-                    </p>
-                  </button>
-                  <button className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]">
-                    <p className="text-[#245136] font-manrope text-base font-medium">
-                      Edit
-                    </p>
-                  </button>
-                </div>
-              </div>
 
-              <p className="text-[#245136] font-manrope text-xl font-medium">
-                15:30 - 17:30
-              </p>
-
-              <div className="flex justify-between items-center">
-                <button 
-                  onClick={() => setIsOverlayOpen(true)}
-                  className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]"
-                >
-                  <p className="text-[#245136] font-manrope text-base font-medium">
-                    All Activities (0 total)
+                {place.description && (
+                  <p className="text-[#419061] font-manrope text-base font-medium">
+                    {place.description}
                   </p>
-                </button>
+                )}
 
-                <div className="flex justify-center items-center rounded-full border border-[#6FBE8F] bg-[#FDFFFE] w-12 h-12">
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 32 32"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                <div className="flex justify-between items-center">
+                  <button
+                    onClick={() => { setSelectedPlaceId(place.id); setIsOverlayOpen(true); }}
+                    className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]"
                   >
-                    <path
-                      d="M27.7867 6.14666C27.1057 5.46533 26.2971 4.92485 25.4071 4.5561C24.5172 4.18735 23.5633 3.99756 22.6 3.99756C21.6367 3.99756 20.6828 4.18735 19.7929 4.5561C18.9029 4.92485 18.0943 5.46533 17.4133 6.14666L16 7.55999L14.5867 6.14666C13.2111 4.77107 11.3454 3.99827 9.4 3.99827C7.45462 3.99827 5.58892 4.77107 4.21333 6.14666C2.83774 7.52225 2.06494 9.38795 2.06494 11.3333C2.06494 13.2787 2.83774 15.1444 4.21333 16.52L16 28.3067L27.7867 16.52C28.468 15.839 29.0085 15.0304 29.3772 14.1405C29.746 13.2505 29.9358 12.2966 29.9358 11.3333C29.9358 10.37 29.746 9.41613 29.3772 8.52619C29.0085 7.63624 28.468 6.82767 27.7867 6.14666Z"
-                      stroke="#6FBE8F"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                    <p className="text-[#245136] font-manrope text-base font-medium">
+                      All Activities ({place.activities.length} total)
+                    </p>
+                  </button>
+
+                  <div className="flex justify-center items-center rounded-full border border-[#6FBE8F] bg-[#FDFFFE] w-12 h-12">
+                    <svg
+                      width="32"
+                      height="32"
+                      viewBox="0 0 32 32"
+                      fill={place.isFavorite ? "#6FBE8F" : "none"}
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M27.7867 6.14666C27.1057 5.46533 26.2971 4.92485 25.4071 4.5561C24.5172 4.18735 23.5633 3.99756 22.6 3.99756C21.6367 3.99756 20.6828 4.18735 19.7929 4.5561C18.9029 4.92485 18.0943 5.46533 17.4133 6.14666L16 7.55999L14.5867 6.14666C13.2111 4.77107 11.3454 3.99827 9.4 3.99827C7.45462 3.99827 5.58892 4.77107 4.21333 6.14666C2.83774 7.52225 2.06494 9.38795 2.06494 11.3333C2.06494 13.2787 2.83774 15.1444 4.21333 16.52L16 28.3067L27.7867 16.52C28.468 15.839 29.0085 15.0304 29.3772 14.1405C29.746 13.2505 29.9358 12.2966 29.9358 11.3333C29.9358 10.37 29.746 9.41613 29.3772 8.52619C29.0085 7.63624 28.468 6.82767 27.7867 6.14666Z"
+                        stroke="#6FBE8F"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
 
             {/* Add New Place Button */}
-            <button  onClick={() => setIsPlaceOverlayOpen(true)}
-            className="flex py-3 px-6 justify-center items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#6FBE8F]">
+            <button
+              onClick={() => { setSelectedPlaceId(null); setIsPlaceOverlayOpen(true); }}
+              className="flex py-3 px-6 justify-center items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#6FBE8F]"
+            >
               <p className="text-[#FDFFFE] font-manrope text-xl font-medium">
                 Add a New Place
               </p>
@@ -222,8 +221,8 @@ export default function ItineraryBuilder() {
 
           {/* Day Tabs - positioned at bottom */}
           <div className="absolute bottom-12 left-12 flex gap-2">
-            {days.map(day => (
-                <DayTab 
+            {itinerary.days.map(day => (
+                <DayTab
                   key={day.id}
                   day={day}
                   isActive={currentDay === day.id}
@@ -259,25 +258,38 @@ export default function ItineraryBuilder() {
 
         {/* RIGHT SIDE - 50% - Chat */}
         <div className="w-1/2 p-12 flex flex-col justify-between">
-          {/* User message bubble */}
-          <div className="flex flex-col gap-4">
-            {chatHistory.map((msg, idx) => (
-                <ChatBubble 
+          <div className="flex flex-col gap-4 overflow-y-auto flex-1 mb-4">
+            {itinerary.chatHistory.map((msg, idx) => (
+                <ChatBubble
                   key={idx}
                   message={msg.message}
                   isUser={msg.role === 'user'}
                 />
             ))}
+            {isLoading && (
+              <div className="flex py-5 px-6 rounded-3xl border border-[#419061] bg-[#FDFFFE]">
+                <p className="text-[#4A5551] font-manrope text-xl italic">Thinking...</p>
+              </div>
+            )}
           </div>
 
           {/* Input box at bottom */}
           <div className="flex py-3 px-6 justify-between items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#FDFFFE]">
-            <input 
-              type="text" 
-              placeholder="Reply...." 
-              className="text-[#4A5551] font-manrope text-xl flex-1 bg-transparent outline-none"
+            <input
+              type="text"
+              placeholder="Reply...."
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isLoading}
+              className="text-[#4A5551] font-manrope text-xl flex-1 bg-transparent outline-none disabled:opacity-50"
             />
-            <div className="flex p-[5px] items-center justify-center shrink-0 rounded-3xl bg-[#419061] w-[39px] h-[39px]">
+            <div
+              onClick={handleChatSubmit}
+              className={`flex p-[5px] items-center justify-center shrink-0 rounded-3xl w-[39px] h-[39px] cursor-pointer ${
+                isLoading ? 'bg-[#A0C8B0]' : 'bg-[#419061]'
+              }`}
+            >
               <svg
                 width="29"
                 height="29"
@@ -298,26 +310,24 @@ export default function ItineraryBuilder() {
         </div>
       </div>
 
-      {/* Modal Overlay */}
       {isOverlayOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={() => setIsOverlayOpen(false)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <AddEditActivityOverlay onClose={() => setIsOverlayOpen(false)} />
+            <AddEditActivityOverlay onClose={() => setIsOverlayOpen(false)} place={selectedPlace} />
           </div>
         </div>
       )}
 
-      {/* New Place Modal */}
       {isPlaceOverlayOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={() => setIsPlaceOverlayOpen(false)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <AddEditPlaceOverlay onClose={() => setIsPlaceOverlayOpen(false)} />
+            <AddEditPlaceOverlay onClose={() => setIsPlaceOverlayOpen(false)} place={selectedPlace} />
           </div>
         </div>
       )}

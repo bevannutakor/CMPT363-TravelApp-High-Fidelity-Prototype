@@ -1,8 +1,8 @@
-export default function AddEditPlaceOverlay({ onClose }) {
+export default function AddEditPlaceOverlay({ onClose, place }) {
   return (
     <div className="relative flex flex-col gap-8 rounded-3xl border border-[#419061] bg-[#FDFFFE] shadow-lg p-10 max-w-[600px] w-full">
       {/* Close button */}
-      <button 
+      <button
         onClick={onClose}
         className="absolute top-4 right-4 text-2xl text-[#419061] hover:text-[#245136]"
       >
@@ -13,11 +13,12 @@ export default function AddEditPlaceOverlay({ onClose }) {
         {/* Destination */}
         <div className="flex flex-col gap-2">
           <label className="text-[#000] font-manrope text-xl">
-            Destination:
+            {place ? `Edit: ${place.name}` : 'Destination:'}
           </label>
           <input
             type="text"
             placeholder="Discover the hidden charms..."
+            defaultValue={place?.name ?? ''}
             className="py-3 px-6 rounded-3xl border border-[#419061] bg-[#FDFFFE] text-[#353D3A] font-manrope text-xl outline-none w-full"
           />
         </div>
@@ -90,7 +91,7 @@ export default function AddEditPlaceOverlay({ onClose }) {
 
       {/* Buttons */}
       <div className="flex justify-center items-center gap-8">
-        <button 
+        <button
           onClick={onClose}
           className="flex py-3 px-8 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE] hover:bg-[#F0F0F0]"
         >
@@ -98,7 +99,7 @@ export default function AddEditPlaceOverlay({ onClose }) {
             Save
           </p>
         </button>
-        <button 
+        <button
           onClick={onClose}
           className="flex py-3 px-8 justify-center items-center rounded-3xl border border-[#419061] bg-[#6FBE8F] hover:bg-[#5AAD7F]"
         >
