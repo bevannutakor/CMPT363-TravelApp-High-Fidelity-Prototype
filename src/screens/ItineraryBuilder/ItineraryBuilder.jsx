@@ -1,9 +1,62 @@
 import { useState } from 'react';
-import AddEditOverlay from '../../components/ui/overlay';
+import AddEditActivityOverlay from '../../components/ui/activityoverlay';
+import AddEditPlaceOverlay from '../../components/ui/placeoverlay';
+import DayTab from '../../components/ui/DayTab';
+import ChatBubble from '../../components/ui/ChatBubble'
+
+//example of what the data structure will look like.
+const itineraryData = {
+  tripName: "Exploring Munich",
+  days: [
+    {
+      id: 1,
+      name: "Day 1",
+      places: [
+        {
+          id: "bmw-museum",
+          name: "BMW Museum",
+          timeStart: "10:00",
+          timeEnd: "15:00",
+          description: "Browse the classic car collection...",
+          isFavorite: false,
+          activities: [
+            { id: "act1", name: "Browse the classic car collection" },
+            { id: "act2", name: "Watch the restoration workshop demo" },
+            { id: "act3", name: "Lunch at the museum cafe" }
+          ]
+        },
+        {
+          id: "marienplatz",
+          name: "Marienplatz",
+          timeStart: "15:30",
+          timeEnd: "17:30",
+          isFavorite: true,
+          activities: []
+        }
+      ]
+    },
+    { id: 2, name: "Day 2", places: [] },
+    { id: 3, name: "Day 3", places: [] }
+  ],
+  chatHistory: [
+    { role: "user", message: "I'm planning to go to..." },
+    { role: "assistant", message: "1. Explore Marienkirche..." }
+  ]
+};
+
+
+//TODO: 
+// Build all backend functionality to be based on the above json structure
+// When AI is about to add something to the UI it should be based on the json structure aboveExploring Munich
 
 export default function ItineraryBuilder() {
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+  const [isPlaceOverlayOpen, setIsPlaceOverlayOpen] = useState(false);
+  const [currentDay, setCurrentDay] = useState(1);
 
+  const days = itineraryData.days;
+  const chatHistory = itineraryData.chatHistory;
+  
   return (
     <>
       <div className="bg-[#FDFFFE] min-h-screen flex">
@@ -29,7 +82,7 @@ export default function ItineraryBuilder() {
 
           {/* Title */}
           <h1 className="text-[#08120C] font-manrope text-[40px] font-semibold mb-8">
-            Exploring Munich
+            {itineraryData.tripName}
           </h1>
 
           {/* Activity Cards */}
@@ -147,7 +200,8 @@ export default function ItineraryBuilder() {
             </div>
 
             {/* Add New Place Button */}
-            <button className="flex py-3 px-6 justify-center items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#6FBE8F]">
+            <button  onClick={() => setIsPlaceOverlayOpen(true)}
+            className="flex py-3 px-6 justify-center items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#6FBE8F]">
               <p className="text-[#FDFFFE] font-manrope text-xl font-medium">
                 Add a New Place
               </p>
@@ -168,21 +222,14 @@ export default function ItineraryBuilder() {
 
           {/* Day Tabs - positioned at bottom */}
           <div className="absolute bottom-12 left-12 flex gap-2">
-            <button className="flex py-3 px-5 justify-center items-center border border-[#419061] bg-[#419061] rounded">
-              <p className="text-[#FDFFFE] font-manrope text-2xl font-semibold">
-                Day 1
-              </p>
-            </button>
-            <button className="flex py-3 px-5 justify-center items-center border border-[#6FBE8F] bg-[#FDFFFE] rounded">
-              <p className="text-[#6FBE8F] font-manrope text-2xl font-semibold">
-                Day 2
-              </p>
-            </button>
-            <button className="flex py-3 px-5 justify-center items-center border border-[#6FBE8F] bg-[#FDFFFE] rounded">
-              <p className="text-[#6FBE8F] font-manrope text-2xl font-semibold">
-                Day 3
-              </p>
-            </button>
+            {days.map(day => (
+                <DayTab 
+                  key={day.id}
+                  day={day}
+                  isActive={currentDay === day.id}
+                  onClick={() => setCurrentDay(day.id)}
+                />
+              ))}
             <div className="flex justify-center items-center rounded-full border border-[#419061] bg-[#FDFFFE] w-[58px] h-[58px] ml-4">
               <svg
                 width="31"
@@ -214,25 +261,13 @@ export default function ItineraryBuilder() {
         <div className="w-1/2 p-12 flex flex-col justify-between">
           {/* User message bubble */}
           <div className="flex flex-col gap-4">
-            <button className="flex py-5 px-6 justify-start items-start rounded-3xl border border-[#419061] bg-[#DCEFE4]">
-              <p className="text-[#000] font-manrope text-xl text-left">
-                I'm planning to go to the Marienplatz after the BMW Museum. Can you
-                help give some suggestions for activities to do in the Marienplatz?
-              </p>
-            </button>
-
-            {/* AI response bubble */}
-            <div className="flex py-5 px-6 rounded-3xl border border-[#419061] bg-[#FDFFFE]">
-              <p className="text-[#000] font-manrope text-xl text-left whitespace-pre-line">
-                1. Explore Marienkirche Cathedral (1 hour) - stunning Gothic architecture, climb the tower for city views
-                
-                2. Watch the Glockenspiel performance (30 mins) - the famous mechanical clock in the New Town Hall (runs at 11am, 12pm, 5pm)
-                
-                3. Lunch at a traditional Bavarian café (1 hour) - try local specialties like schnitzel or pretzels
-                
-                4. Photo stop at Mariensäule statue (15 mins) - iconic central monument, great photo spot
-              </p>
-            </div>
+            {chatHistory.map((msg, idx) => (
+                <ChatBubble 
+                  key={idx}
+                  message={msg.message}
+                  isUser={msg.role === 'user'}
+                />
+            ))}
           </div>
 
           {/* Input box at bottom */}
@@ -270,7 +305,19 @@ export default function ItineraryBuilder() {
           onClick={() => setIsOverlayOpen(false)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <AddEditOverlay onClose={() => setIsOverlayOpen(false)} />
+            <AddEditActivityOverlay onClose={() => setIsOverlayOpen(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* New Place Modal */}
+      {isPlaceOverlayOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setIsPlaceOverlayOpen(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <AddEditPlaceOverlay onClose={() => setIsPlaceOverlayOpen(false)} />
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-export default function AddEditOverlay({ onClose }) {
+export default function AddEditActivityOverlay({ onClose }) {
   return (
     <div className="relative rounded-3xl border border-[#419061] bg-[#FDFFFE] shadow-lg p-12 max-w-[700px] w-full">
       {/* Close button */}
