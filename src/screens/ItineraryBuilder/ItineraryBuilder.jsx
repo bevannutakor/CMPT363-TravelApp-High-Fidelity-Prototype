@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import {useState} from 'react';
 import AddEditActivityOverlay from '../../components/ui/activityoverlay';
 import AddEditPlaceOverlay from '../../components/ui/placeoverlay';
 import DayTab from '../../components/ui/DayTab';
 import ChatBubble from '../../components/ui/ChatBubble'
 
+
+//todo: make both sides scrollable, add confirmation screens, and test AI output, polish
 export default function ItineraryBuilder() {
   const [itinerary, setItinerary] = useState({
     tripName: "Exploring Munich",
@@ -17,7 +19,6 @@ export default function ItineraryBuilder() {
             name: "BMW Museum",
             timeStart: "10:00",
             timeEnd: "15:00",
-            description: "Browse the classic car collection...",
             isFavorite: false,
             activities: [
               { id: "act1", name: "Browse the classic car collection" },
@@ -48,14 +49,14 @@ export default function ItineraryBuilder() {
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   const [isPlaceOverlayOpen, setIsPlaceOverlayOpen] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
-  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [selectedPlace, setSelectedPlace] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const currentDayObj = itinerary.days.find(d => d.id === currentDay);
   const currentPlaces = currentDayObj?.places ?? [];
-  const selectedPlace = currentPlaces.find(p => p.id === selectedPlaceId);
-
+  //const selectedPlace = currentPlaces.find(p => p.id === selectedPlaceId);
+	
   const handleChatSubmit = async () => {
     const message = chatInput.trim();
     if (!message || isLoading) return;
@@ -102,6 +103,128 @@ export default function ItineraryBuilder() {
     }
   };
 
+
+  //Manual Itinerary editing
+  //Update an existing place
+  const handleAddPlace = (newPlace, dayId) => {
+    setItinerary(prev => ({
+      ...prev,
+      days: prev.days.map(day => {
+        if (day.id !== dayId) return day; // use the selected day, not currentDay
+  
+        return {
+          ...day,
+          places: [
+            ...day.places,
+            {
+              ...newPlace,
+              id: `place-${Date.now()}`,
+              activities: []
+            }
+          ]
+        };
+      })
+    }));
+  
+    setIsPlaceOverlayOpen(false);
+  };
+
+  // Update an existing place
+  const handleUpdatePlace = (placeId, updatedPlace) => {
+    setItinerary(prev => ({
+      ...prev,
+      days: prev.days.map(day => {
+        if (day.id !== currentDay) return day;
+  
+        return {
+          ...day,
+          places: day.places.map(place =>
+            place.id === placeId
+              ? { ...place, ...updatedPlace }
+              : place
+          )
+        };
+      })
+    }));
+  
+    setIsPlaceOverlayOpen(false);
+  };
+
+  // Delete a place
+  const handleDeletePlace = (placeId) => {
+    setItinerary(prev => ({
+      ...prev,
+      days: prev.days.map(day =>
+        day.id === currentDay
+          ? { ...day, places: day.places.filter(place => place.id !== placeId) }
+          : day
+      )
+    }));
+    setIsPlaceOverlayOpen(false);
+  };
+
+const handleSaveActivities = (placeId, updatedActivities) => {
+  setItinerary(prev => ({
+    ...prev,
+    days: prev.days.map(day => {
+      if (day.id !== currentDay) return day;
+
+      return {
+        ...day,
+        places: day.places.map(place =>
+          place.id === placeId
+            ? { ...place, activities: updatedActivities }
+            : place
+        )
+      };
+    })
+  }));
+
+  setIsOverlayOpen(false);
+};
+
+  const toggleFavorite = (placeId) => {
+    setItinerary(prev => ({
+      ...prev,
+      days: prev.days.map(day => {
+        if (day.id !== currentDay) return day;
+  
+        return {
+          ...day,
+          places: day.places.map(place =>
+            place.id === placeId
+              ? { ...place, isFavorite: !place.isFavorite }
+              : place
+          )
+        };
+      })
+    }));
+  };
+
+  //Toggle days
+  const handleAddDay = () => {
+    let newDayId;
+  
+    setItinerary(prev => {
+      newDayId = prev.days.length + 1;
+  
+      return {
+        ...prev,
+        days: [
+          ...prev.days,
+          {
+            id: newDayId,
+            name: `Day ${newDayId}`,
+            places: []
+          }
+        ]
+      };
+    });
+  
+    setCurrentDay(newDayId);
+    return newDayId;
+  };
+  
   return (
     <>
       <div className="bg-[#FDFFFE] min-h-screen flex">
@@ -145,7 +268,7 @@ export default function ItineraryBuilder() {
                       </p>
                     </button>
                     <button
-                      onClick={() => { setSelectedPlaceId(place.id); setIsPlaceOverlayOpen(true); }}
+                      onClick={() => { setSelectedPlace(place); setIsPlaceOverlayOpen(true); }}
                       className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]"
                     >
                       <p className="text-[#245136] font-manrope text-base font-medium">
@@ -159,15 +282,15 @@ export default function ItineraryBuilder() {
                   {place.timeStart} - {place.timeEnd}
                 </p>
 
-                {place.description && (
+                {place.activities?.length > 0 && (
                   <p className="text-[#419061] font-manrope text-base font-medium">
-                    {place.description}
+                    {place.activities[0].name}
                   </p>
                 )}
 
                 <div className="flex justify-between items-center">
                   <button
-                    onClick={() => { setSelectedPlaceId(place.id); setIsOverlayOpen(true); }}
+                    onClick={() => { setSelectedPlace(place); setIsOverlayOpen(true); }}
                     className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]"
                   >
                     <p className="text-[#245136] font-manrope text-base font-medium">
@@ -175,7 +298,7 @@ export default function ItineraryBuilder() {
                     </p>
                   </button>
 
-                  <div className="flex justify-center items-center rounded-full border border-[#6FBE8F] bg-[#FDFFFE] w-12 h-12">
+                  <div onClick={() => toggleFavorite(place.id)} className="flex justify-center items-center rounded-full border border-[#6FBE8F] bg-[#FDFFFE] w-12 h-12">
                     <svg
                       width="32"
                       height="32"
@@ -198,7 +321,7 @@ export default function ItineraryBuilder() {
 
             {/* Add New Place Button */}
             <button
-              onClick={() => { setSelectedPlaceId(null); setIsPlaceOverlayOpen(true); }}
+              onClick={() => { setSelectedPlace(null); setIsPlaceOverlayOpen(true); }}
               className="flex py-3 px-6 justify-center items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#6FBE8F]"
             >
               <p className="text-[#FDFFFE] font-manrope text-xl font-medium">
@@ -229,6 +352,15 @@ export default function ItineraryBuilder() {
                   onClick={() => setCurrentDay(day.id)}
                 />
               ))}
+           	<button
+           	  onClick={handleAddDay}
+           	  className="flex py-3 px-5 justify-center items-center border-2 border-dashed rounded
+           	             border-[#6FBE8F] bg-[#FDFFFE] hover:bg-[#DCEFE4] transition"
+           	>
+           	  <p className="font-manrope text-2xl font-semibold text-[#6FBE8F]">
+           	    + Add Day
+           	  </p>
+           	</button>
             <div className="flex justify-center items-center rounded-full border border-[#419061] bg-[#FDFFFE] w-[58px] h-[58px] ml-4">
               <svg
                 width="31"
@@ -316,7 +448,11 @@ export default function ItineraryBuilder() {
           onClick={() => setIsOverlayOpen(false)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <AddEditActivityOverlay onClose={() => setIsOverlayOpen(false)} place={selectedPlace} />
+            <AddEditActivityOverlay 
+              onClose={() => {setIsOverlayOpen(false); setSelectedPlace(null);}}
+              place={selectedPlace}
+              onSaveActivities={handleSaveActivities}
+            />
           </div>
         </div>
       )}
@@ -327,7 +463,20 @@ export default function ItineraryBuilder() {
           onClick={() => setIsPlaceOverlayOpen(false)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <AddEditPlaceOverlay onClose={() => setIsPlaceOverlayOpen(false)} place={selectedPlace} />
+            <AddEditPlaceOverlay 
+              onClose={() => setIsPlaceOverlayOpen(false)} 
+              place={selectedPlace} 
+              days={itinerary.days}
+              currentDay={currentDay}
+              onAddDay={handleAddDay}
+              onSave={(placeData) => {
+                if (selectedPlace) {
+                  handleUpdatePlace(selectedPlace.id, placeData);
+                } else {
+                  handleAddPlace(placeData, placeData.dayId); // pass the selected day here
+                }
+              }}
+            />
           </div>
         </div>
       )}

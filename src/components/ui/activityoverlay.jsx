@@ -1,5 +1,9 @@
-export default function AddEditActivityOverlay({ onClose, place }) {
+import { useState, useEffect} from 'react';
 
+export default function AddEditActivityOverlay({ onClose, place, onSaveActivities}) {
+  const [activities, setActivities] = useState([]);
+  const [errors, setErrors] = useState({});
+  
   const TrashIcon = () => (
     <svg width="27" height="28" viewBox="0 0 27 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -12,6 +16,46 @@ export default function AddEditActivityOverlay({ onClose, place }) {
     </svg>
   );
 
+  const handleAddActivityLocal = () => {
+    setActivities(prev => [
+      ...prev,
+      {
+        id: `temp-${Date.now()}`,
+        name: ''
+      }
+    ]);
+  };
+
+  const handleDeleteActivityLocal = (id) => {
+    setActivities(prev => prev.filter(act => act.id !== id));
+  };
+
+  const handleSave = () => {
+    const newErrors = {};
+  
+    activities.forEach(act => {
+      if (!act.name.trim()) {
+        newErrors[act.id] = true;
+      }
+    });
+  
+    setErrors(newErrors);
+  
+    // If any errors exist → stop save
+    if (Object.keys(newErrors).length > 0) return;
+  
+    onSaveActivities(place.id, activities);
+    onClose();
+  };
+
+  useEffect(() => {
+    if (place?.activities) {
+      setActivities(place.activities);
+    } else {
+      setActivities([]);
+    }
+  }, [place]);
+  
   return (
     <div className="relative rounded-3xl border border-[#419061] bg-[#FDFFFE] shadow-lg p-12 max-w-[700px] w-full">
       {/* Close button */}
@@ -27,27 +71,56 @@ export default function AddEditActivityOverlay({ onClose, place }) {
       </p>
 
       <div className="flex flex-col gap-4">
-        {(place?.activities ?? []).map(activity => (
+        {activities.map((activity, index) => (
           <div key={activity.id} className="flex py-4 px-6 items-center gap-3 rounded-3xl border border-[#419061] bg-[#FDFFFE]">
             <input
               type="text"
-              defaultValue={activity.name}
-              className="text-[#08120C] font-manrope text-xl flex-1 bg-transparent outline-none"
+              value={activity.name}
+              onChange={(e) => {
+                const value = e.target.value;
+            
+                setActivities(prev =>
+                  prev.map((act, i) =>
+                    i === index ? { ...act, name: value } : act
+                  )
+                );
+            
+                // Clear error as user types
+                if (value.trim()) {
+                  setErrors(prev => {
+                    const copy = { ...prev };
+                    delete copy[activity.id];
+                    return copy;
+                  });
+                }
+              }}
+              placeholder={
+                errors[activity.id]
+                  ? "Warning, please enter activity name"
+                  : "Enter activity..."
+              }
+              className={`text-[#08120C] font-manrope text-xl flex-1 bg-transparent outline-none border rounded-xl px-3 py-2
+                ${
+                  errors[activity.id]
+                    ? 'border-red-500 placeholder-red-400'
+                    : 'border-transparent'
+                }
+              `}
             />
-            <button className="flex-shrink-0 p-2 rounded-3xl bg-[#419061] hover:bg-[#245136] w-[41px] h-[42px] flex items-center justify-center">
+            <button onClick={() => handleDeleteActivityLocal(activity.id)} className="flex-shrink-0 p-2 rounded-3xl bg-[#419061] hover:bg-[#245136] w-[41px] h-[42px] flex items-center justify-center">
               <TrashIcon />
             </button>
           </div>
         ))}
 
-        {(place?.activities ?? []).length === 0 && (
+        {activities.length.length === 0 && (
           <p className="text-[#4A5551] font-manrope text-base italic px-2">
             No activities yet. Add one below or ask the AI assistant.
           </p>
         )}
 
         {/* Add New Activity Button */}
-        <button className="flex py-4 px-6 justify-center items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#6FBE8F] hover:bg-[#5AAD7F] mt-2">
+        <button onClick={handleAddActivityLocal} className="flex py-4 px-6 justify-center items-center gap-2.5 rounded-3xl border border-[#419061] bg-[#6FBE8F] hover:bg-[#5AAD7F] mt-2">
           <p className="text-[#FDFFFE] font-manrope text-xl font-medium">
             Add a New Activity
           </p>
@@ -60,7 +133,7 @@ export default function AddEditActivityOverlay({ onClose, place }) {
         </button>
 
         {/* Save Button */}
-        <button className="flex py-3 px-8 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE] hover:bg-[#F0F0F0]">
+        <button onClick={handleSave} className="flex py-3 px-8 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE] hover:bg-[#F0F0F0]">
           <p className="text-[#245136] font-manrope text-xl font-medium">
             Save
           </p>
