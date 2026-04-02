@@ -1,11 +1,11 @@
-import {useState} from 'react';
+import {useState, useRef, useEffect} from 'react';
 import AddEditActivityOverlay from '../../components/ui/activityoverlay';
 import AddEditPlaceOverlay from '../../components/ui/placeoverlay';
 import DayTab from '../../components/ui/DayTab';
 import ChatBubble from '../../components/ui/ChatBubble'
 
 
-//todo: make both sides scrollable, add confirmation screens, and test AI output, polish
+//todo: add confirmation screens, and test AI output, polish
 export default function ItineraryBuilder() {
   const [itinerary, setItinerary] = useState({
     tripName: "Exploring Munich",
@@ -52,11 +52,17 @@ export default function ItineraryBuilder() {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const chatEndRef = useRef(null);
 
   const currentDayObj = itinerary.days.find(d => d.id === currentDay);
   const currentPlaces = currentDayObj?.places ?? [];
   //const selectedPlace = currentPlaces.find(p => p.id === selectedPlaceId);
-	
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [itinerary.chatHistory, isLoading]);
+
+  
   const handleChatSubmit = async () => {
     const message = chatInput.trim();
     if (!message || isLoading) return;
@@ -227,9 +233,9 @@ const handleSaveActivities = (placeId, updatedActivities) => {
   
   return (
     <>
-      <div className="bg-[#FDFFFE] min-h-screen flex">
+      <div className="bg-[#FDFFFE] h-screen flex overflow-hidden">
         {/* LEFT SIDE - 50% */}
-        <div className="w-1/2 p-12 relative">
+        <div className="w-1/2 p-12 flex flex-col h-full">
           {/* Back button */}
           <svg
             width="55"
@@ -254,7 +260,8 @@ const handleSaveActivities = (placeId, updatedActivities) => {
           </h1>
 
           {/* Activity Cards */}
-          <div className="flex flex-col gap-4 mb-8">
+          <div className="flex-1 overflow-y-auto mb-4">
+          <div className="flex flex-col gap-4">
             {currentPlaces.map(place => (
               <div key={place.id} className="flex py-6 px-8 flex-col gap-2.5 rounded-3xl border border-[#419061] bg-[#DCEFE4]">
                 <div className="flex justify-between items-start mb-2">
@@ -317,6 +324,7 @@ const handleSaveActivities = (placeId, updatedActivities) => {
                   </div>
                 </div>
               </div>
+              
             ))}
 
             {/* Add New Place Button */}
@@ -341,9 +349,10 @@ const handleSaveActivities = (placeId, updatedActivities) => {
               </svg>
             </button>
           </div>
+          </div>
 
           {/* Day Tabs - positioned at bottom */}
-          <div className="absolute bottom-12 left-12 flex gap-2">
+          <div className="bg-[#FDFFFE] pt-4 flex gap-2">
             {itinerary.days.map(day => (
                 <DayTab
                   key={day.id}
@@ -389,8 +398,8 @@ const handleSaveActivities = (placeId, updatedActivities) => {
         </div>
 
         {/* RIGHT SIDE - 50% - Chat */}
-        <div className="w-1/2 p-12 flex flex-col justify-between">
-          <div className="flex flex-col gap-4 overflow-y-auto flex-1 mb-4">
+        <div className="w-1/2 p-12 flex flex-col h-full overflow-hidden">
+          <div className="flex-1 overflow-y-auto mb-4 flex flex-col gap-4">
             {itinerary.chatHistory.map((msg, idx) => (
                 <ChatBubble
                   key={idx}
@@ -403,6 +412,7 @@ const handleSaveActivities = (placeId, updatedActivities) => {
                 <p className="text-[#4A5551] font-manrope text-xl italic">Thinking...</p>
               </div>
             )}
+            <div ref={chatEndRef} />
           </div>
 
           {/* Input box at bottom */}
