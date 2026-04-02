@@ -27,7 +27,21 @@ export default function AddEditActivityOverlay({ onClose, place, onSaveActivitie
   };
 
   const handleDeleteActivityLocal = (id) => {
-    setActivities(prev => prev.filter(act => act.id !== id));
+    const activity = activities.find(act => act.id === id);
+  
+    const name = activity?.name?.trim();
+  
+    const message = name
+      ? `Delete "${name}" from ${place?.name}'s activities?`
+      : `Delete this activity from ${place?.name}'s activities?`;
+  
+    onConfirmAction(
+      () => {
+        setActivities(prev => prev.filter(act => act.id !== id));
+      },
+      message,
+      "delete"
+    );
   };
   
   const handleSave = () => {
