@@ -1,6 +1,6 @@
 import { useState, useEffect} from 'react';
 
-export default function AddEditActivityOverlay({ onClose, place, onSaveActivities}) {
+export default function AddEditActivityOverlay({ onClose, place, onSaveActivities, onConfirmAction}) {
   const [activities, setActivities] = useState([]);
   const [errors, setErrors] = useState({});
   
@@ -29,7 +29,7 @@ export default function AddEditActivityOverlay({ onClose, place, onSaveActivitie
   const handleDeleteActivityLocal = (id) => {
     setActivities(prev => prev.filter(act => act.id !== id));
   };
-
+  
   const handleSave = () => {
     const newErrors = {};
   
@@ -113,7 +113,7 @@ export default function AddEditActivityOverlay({ onClose, place, onSaveActivitie
           </div>
         ))}
 
-        {activities.length.length === 0 && (
+        {activities.length === 0 && (
           <p className="text-[#4A5551] font-manrope text-base italic px-2">
             No activities yet. Add one below or ask the AI assistant.
           </p>

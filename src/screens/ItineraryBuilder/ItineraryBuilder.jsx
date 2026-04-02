@@ -3,9 +3,10 @@ import AddEditActivityOverlay from '../../components/ui/activityoverlay';
 import AddEditPlaceOverlay from '../../components/ui/placeoverlay';
 import DayTab from '../../components/ui/DayTab';
 import ChatBubble from '../../components/ui/ChatBubble'
+import ConfirmationDialog from '../../components/ui/confirmoverlay'
+import ConfirmedNotify from '../../components/ui/confirmednotify'
 
 
-//todo: add confirmation screens, and test AI output, polish
 export default function ItineraryBuilder() {
   const [itinerary, setItinerary] = useState({
     tripName: "Exploring Munich",
@@ -52,6 +53,14 @@ export default function ItineraryBuilder() {
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmType, setConfirmType] = useState(null);
+
+  const [showConfirmNotify, setShowConfirmNotify] = useState(false);
+  const [confirmMessageNotify, setConfirmMessageNotify] = useState('');
   const chatEndRef = useRef(null);
 
   const currentDayObj = itinerary.days.find(d => d.id === currentDay);
@@ -116,7 +125,7 @@ export default function ItineraryBuilder() {
     setItinerary(prev => ({
       ...prev,
       days: prev.days.map(day => {
-        if (day.id !== dayId) return day; // use the selected day, not currentDay
+        if (day.id !== dayId) return day;
   
         return {
           ...day,
@@ -133,6 +142,10 @@ export default function ItineraryBuilder() {
     }));
   
     setIsPlaceOverlayOpen(false);
+  
+    // Trigger notification
+    setConfirmMessageNotify(`Place "${newPlace.name}" successfully added!`);
+    setShowConfirmNotify(true);
   };
 
   // Update an existing place
@@ -157,36 +170,54 @@ export default function ItineraryBuilder() {
   };
 
   // Delete a place
-  const handleDeletePlace = (placeId) => {
-    setItinerary(prev => ({
-      ...prev,
-      days: prev.days.map(day =>
-        day.id === currentDay
-          ? { ...day, places: day.places.filter(place => place.id !== placeId) }
-          : day
-      )
-    }));
-    setIsPlaceOverlayOpen(false);
-  };
+ const handleDeletePlace = (placeId, placeName) => {
+   setPendingAction(() => () => {
+     setItinerary(prev => ({
+       ...prev,
+       days: prev.days.map(day =>
+         day.id === currentDay
+           ? { ...day, places: day.places.filter(place => place.id !== placeId) }
+           : day
+       )
+     }));
+ 
+     setIsPlaceOverlayOpen(false);
+ 
+     // Trigger notification
+     setConfirmMessageNotify(`Place "${placeName}" successfully deleted!`);
+     setShowConfirmNotify(true);
+   });
+ 
+   setConfirmType("delete");
+   setConfirmMessage("Are you sure you want to delete this place? This cannot be undone.");
+   setIsConfirmOpen(true);
+ };
 
 const handleSaveActivities = (placeId, updatedActivities) => {
-  setItinerary(prev => ({
-    ...prev,
-    days: prev.days.map(day => {
-      if (day.id !== currentDay) return day;
+  setPendingAction(() => () => {
+    setItinerary(prev => ({
+      ...prev,
+      days: prev.days.map(day => {
+        if (day.id !== currentDay) return day;
 
-      return {
-        ...day,
-        places: day.places.map(place =>
-          place.id === placeId
-            ? { ...place, activities: updatedActivities }
-            : place
-        )
-      };
-    })
-  }));
+        return {
+          ...day,
+          places: day.places.map(place =>
+            place.id === placeId
+              ? { ...place, activities: updatedActivities }
+              : place
+          )
+        };
+      })
+    }));
 
-  setIsOverlayOpen(false);
+    setIsOverlayOpen(false);
+  });
+
+  const place = currentDayObj.places.find(p => p.id === placeId);
+  setConfirmType("edit");
+  setConfirmMessage(`Save changes to "${place.name}"'s activities?`);
+  setIsConfirmOpen(true);
 };
 
   const toggleFavorite = (placeId) => {
@@ -209,26 +240,22 @@ const handleSaveActivities = (placeId, updatedActivities) => {
 
   //Toggle days
   const handleAddDay = () => {
-    let newDayId;
+    const newDayId =
+      Math.max(...itinerary.days.map(d => d.id), 0) + 1;
   
-    setItinerary(prev => {
-      newDayId = prev.days.length + 1;
-  
-      return {
-        ...prev,
-        days: [
-          ...prev.days,
-          {
-            id: newDayId,
-            name: `Day ${newDayId}`,
-            places: []
-          }
-        ]
-      };
-    });
+    setItinerary(prev => ({
+      ...prev,
+      days: [
+        ...prev.days,
+        {
+          id: newDayId,
+          name: `Day ${newDayId}`,
+          places: []
+        }
+      ]
+    }));
   
     setCurrentDay(newDayId);
-    return newDayId;
   };
   
   return (
@@ -282,6 +309,14 @@ const handleSaveActivities = (placeId, updatedActivities) => {
                         Edit
                       </p>
                     </button>
+                    <button
+                        onClick={() => handleDeletePlace(place.id, place.name)}
+                        className="flex py-2 px-6 justify-center items-center rounded-3xl border border-[#6FBE8F] bg-[#FDFFFE]"
+                      >
+                        <p className="text-[#245136] font-manrope text-base font-medium">
+                          Delete
+                        </p>
+                      </button>
                   </div>
                 </div>
 
@@ -352,7 +387,7 @@ const handleSaveActivities = (placeId, updatedActivities) => {
           </div>
 
           {/* Day Tabs - positioned at bottom */}
-          <div className="bg-[#FDFFFE] pt-4 flex gap-2">
+          <div className="bg-[#FDFFFE] pt-4 flex gap-2 overflow-x-auto">
             {itinerary.days.map(day => (
                 <DayTab
                   key={day.id}
@@ -462,6 +497,12 @@ const handleSaveActivities = (placeId, updatedActivities) => {
               onClose={() => {setIsOverlayOpen(false); setSelectedPlace(null);}}
               place={selectedPlace}
               onSaveActivities={handleSaveActivities}
+              onConfirmAction={(action, message, type) => {
+                setPendingAction(() => action);
+                setConfirmMessage(message);
+                setConfirmType(type);
+                setIsConfirmOpen(true);
+              }}
             />
           </div>
         </div>
@@ -480,15 +521,53 @@ const handleSaveActivities = (placeId, updatedActivities) => {
               currentDay={currentDay}
               onAddDay={handleAddDay}
               onSave={(placeData) => {
-                if (selectedPlace) {
-                  handleUpdatePlace(selectedPlace.id, placeData);
-                } else {
-                  handleAddPlace(placeData, placeData.dayId); // pass the selected day here
-                }
+                const isEditing = !!selectedPlace;
+              
+                setPendingAction(() => () => {
+                  if (isEditing) {
+                    handleUpdatePlace(selectedPlace.id, placeData);
+                  } else {
+                    handleAddPlace(placeData, placeData.dayId);
+                  }
+                });
+              
+                setConfirmType(isEditing ? "edit" : "add");
+              
+                setConfirmMessage(
+                  isEditing
+                    ? `Save changes to "${placeData.name}"?`
+                    : `Add "${placeData.name}" to your itinerary?`
+                );
+              
+                setIsConfirmOpen(true);
               }}
             />
           </div>
         </div>
+      )}
+
+      {isConfirmOpen && (
+        <ConfirmationDialog
+          message={confirmMessage}
+          type={confirmType}
+          onCancel={() => {
+            setIsConfirmOpen(false);
+            setPendingAction(null);
+          }}
+          onConfirm={() => {
+            if (pendingAction) pendingAction();
+            setIsConfirmOpen(false);
+            setPendingAction(null);
+          }}
+        />
+      )}
+
+      {showConfirmNotify && (
+        <ConfirmedNotify
+          message={confirmMessageNotify}
+          duration={3000}
+          onClose={() => setShowConfirmNotify(false)}
+        />
       )}
     </>
   );
