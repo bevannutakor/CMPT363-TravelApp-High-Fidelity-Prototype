@@ -172,26 +172,40 @@ export default function ItineraryBuilder() {
     setShowConfirmNotify(true);
   };
 
-  // Update an existing place
-  const handleUpdatePlace = (placeId, updatedPlace) => {
-    setItinerary(prev => ({
+const handleUpdatePlace = (placeId, updatedPlace) => {
+  setItinerary(prev => {
+    let movedPlace = null;
+
+    const updatedDays = prev.days.map(day => {
+      // Remove place from wherever it currently exists
+      const filteredPlaces = day.places.filter(place => {
+        if (place.id === placeId) {
+          movedPlace = { ...place, ...updatedPlace };
+          return false; // remove it
+        }
+        return true;
+      });
+
+      return { ...day, places: filteredPlaces };
+    });
+
+    // Add it to the NEW selected day
+    return {
       ...prev,
-      days: prev.days.map(day => {
-        if (day.id !== currentDay) return day;
-  
-        return {
-          ...day,
-          places: day.places.map(place =>
-            place.id === placeId
-              ? { ...place, ...updatedPlace }
-              : place
-          )
-        };
+      days: updatedDays.map(day => {
+        if (day.id === updatedPlace.dayId) {
+          return {
+            ...day,
+            places: [...day.places, movedPlace]
+          };
+        }
+        return day;
       })
-    }));
-  
-    setIsPlaceOverlayOpen(false);
-  };
+    };
+  });
+
+  setIsPlaceOverlayOpen(false);
+};
 
   // Delete a place
  const handleDeletePlace = (placeId, placeName) => {
