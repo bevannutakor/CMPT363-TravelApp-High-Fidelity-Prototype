@@ -96,7 +96,31 @@ export default function ItineraryBuilder() {
       }
 
       const data = await response.json();
-      setItinerary(data.updatedItinerary);
+
+      // Always show the AI reply in chat immediately
+      setItinerary(prev => ({
+        ...prev,
+        chatHistory: data.updatedItinerary.chatHistory
+      }));
+
+      // Check if AI actually changed places/days structure
+      const daysChanged = JSON.stringify(data.updatedItinerary.days) !== JSON.stringify(itinerary.days);
+
+      if (daysChanged) {
+        // Require user confirmation before applying structural changes
+        setPendingAction(() => () => {
+          setItinerary(prev => ({
+            ...prev,
+            days: data.updatedItinerary.days,
+            tripName: data.updatedItinerary.tripName,
+          }));
+          setConfirmMessageNotify('Itinerary updated!');
+          setShowConfirmNotify(true);
+        });
+        setConfirmType("edit");
+        setConfirmMessage(data.reply);
+        setIsConfirmOpen(true);
+      }
     } catch (err) {
       console.error('Chat error:', err);
       setItinerary(prev => ({
