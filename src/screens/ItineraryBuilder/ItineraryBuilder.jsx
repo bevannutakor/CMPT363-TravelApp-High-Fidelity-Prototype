@@ -92,11 +92,11 @@ export default function ItineraryBuilder() {
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        throw new Error(`Server error: ${response.status} JSON: ${response.json()}`);
       }
 
       const data = await response.json();
-
+	  
       // Always show the AI reply in chat immediately
       setItinerary(prev => ({
         ...prev,
