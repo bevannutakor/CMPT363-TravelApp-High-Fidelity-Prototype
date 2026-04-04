@@ -1,4 +1,5 @@
 import {useState, useRef, useEffect} from 'react';
+import { useNavigate } from "react-router-dom";
 import AddEditActivityOverlay from '../../components/ui/activityoverlay';
 import AddEditPlaceOverlay from '../../components/ui/placeoverlay';
 import DayTab from '../../components/ui/DayTab';
@@ -46,6 +47,8 @@ export default function ItineraryBuilder() {
       { role: "assistant", message: "1. Explore Marienkirche Cathedral (1 hour)\n\n2. Watch the Glockenspiel performance (30 mins)\n\n3. Lunch at a traditional Bavarian café (1 hour)\n\n4. Photo stop at Mariensäule statue (15 mins)" }
     ]
   });
+
+  const navigate = useNavigate();
 
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   const [isPlaceOverlayOpen, setIsPlaceOverlayOpen] = useState(false);
@@ -308,7 +311,8 @@ const handleSaveActivities = (placeId, updatedActivities) => {
             viewBox="0 0 55 55"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-[55px] h-[55px] mb-4"
+            onClick={() => navigate("/under-construction")}
+            className="cursor-pointer w-[55px] h-[55px] mb-4"
           >
             <path
               d="M27.5 18.3333L18.3333 27.4999M18.3333 27.4999L27.5 36.6666M18.3333 27.4999H36.6666M50.4166 27.4999C50.4166 40.1564 40.1565 50.4166 27.5 50.4166C14.8435 50.4166 4.58331 40.1564 4.58331 27.4999C4.58331 14.8434 14.8435 4.58325 27.5 4.58325C40.1565 4.58325 50.4166 14.8434 50.4166 27.4999Z"
