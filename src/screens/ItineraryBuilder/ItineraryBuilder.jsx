@@ -88,7 +88,7 @@ export default function ItineraryBuilder() {
     }));
 
     try {
-      const response = await fetch("https://cmpt363-travelapp-high-fidelity-prototype.onrender.com/api/chat", {
+      const response = await fetch("https://cmpt363-travelapp-high-fidelity-prototype-1mla.onrender.com/api/chat", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, itinerary }),
